@@ -1,16 +1,23 @@
-# Scanner (private)
+# Scanner
 
-US ID / document scanner. Local development only.
+Android app to scan US driver’s licenses, state IDs, and documents into PDF.
 
-## Protection notes
+## Features
 
-- Do **not** commit or publish APK/AAB files.
-- Release builds use R8 minify + resource shrinking + a private signing key (`release.jks`, `keystore.properties` — gitignored).
+- Scan ID / driver’s license (front + back, life-size on US Letter)
+- Scan multi-page documents
+- Built-in camera + crop; optional ML Kit document scanner when available
+- Stacked or side-by-side ID layout chooser
+
+## Privacy / build notes
+
+- APKs and signing keys are **not** in this repo (`dist/`, `release.jks`, `keystore.properties` are gitignored)
+- Release builds use R8 minify + resource shrinking
 - Application id: `com.saitsuer.scanner`
-- Keep the GitHub repo **private**.
-- APKs are written only under `dist/` via `scripts\build-release.ps1`.
 
-## Build (local)
+## Build (Windows)
+
+Requires JDK 17 + Android SDK (or use a local `.tools` setup).
 
 ```powershell
 .\scripts\build-release.ps1
