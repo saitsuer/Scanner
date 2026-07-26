@@ -4,8 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -21,19 +19,17 @@ object PdfBuilder {
     private const val LETTER_WIDTH = 612
     private const val LETTER_HEIGHT = 792
 
+    /** Pages are drawn as-is; any look (color/enhance/grayscale/B&W) is applied per-page at crop time. */
     fun fromImageFiles(
         images: List<File>,
         output: File,
-        enhance: Boolean = true,
     ): Int {
         require(images.isNotEmpty()) { "At least one page is required" }
         val pdf = PdfDocument()
         var writtenPages = 0
         try {
             images.forEach { file ->
-                val original = BitmapFactory.decodeFile(file.absolutePath) ?: return@forEach
-                val bitmap = if (enhance) toDocumentBitmap(original) else original
-                if (enhance && bitmap !== original) original.recycle()
+                val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return@forEach
 
                 val pageInfo = PdfDocument.PageInfo.Builder(
                     bitmap.width,
@@ -238,29 +234,5 @@ object PdfBuilder {
             }
         }
         return 2
-    }
-
-    /** Increases contrast / grayscale for a scanned-document look. */
-    private fun toDocumentBitmap(source: Bitmap): Bitmap {
-        val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(result)
-        val paint = Paint()
-        val matrix = ColorMatrix().apply {
-            setSaturation(0f)
-        }
-        val contrast = 1.25f
-        val translate = (-0.5f * contrast + 0.5f) * 255f
-        val contrastMatrix = ColorMatrix(
-            floatArrayOf(
-                contrast, 0f, 0f, 0f, translate,
-                0f, contrast, 0f, 0f, translate,
-                0f, 0f, contrast, 0f, translate,
-                0f, 0f, 0f, 1f, 0f,
-            )
-        )
-        matrix.postConcat(contrastMatrix)
-        paint.colorFilter = ColorMatrixColorFilter(matrix)
-        canvas.drawBitmap(source, 0f, 0f, paint)
-        return result
     }
 }

@@ -63,6 +63,13 @@ class CropOverlayView @JvmOverloads constructor(
         invalidate()
     }
 
+    /** Swaps the displayed bitmap (e.g. a new filter) without resetting the crop quad. */
+    fun updateBitmap(source: Bitmap) {
+        bitmap = source
+        updateMatrix()
+        invalidate()
+    }
+
     fun getQuad(): FloatArray = quad.copyOf()
 
     fun resetToFullImage() {

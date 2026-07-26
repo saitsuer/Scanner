@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.exifinterface.media.ExifInterface
 import com.example.scanner.databinding.ActivityCropBinding
 import com.example.scanner.scan.EdgeDetector
+import com.example.scanner.scan.ImageFilter
+import com.example.scanner.scan.ImageFilters
 import com.example.scanner.scan.Perspective
 import java.io.File
 
@@ -25,7 +27,13 @@ class CropActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCropBinding
     private lateinit var imageFile: File
-    private var bitmap: Bitmap? = null
+
+    /** Current-orientation, unfiltered source (survives filter switches). */
+    private var originalBitmap: Bitmap? = null
+
+    /** [originalBitmap] with the selected filter applied; what's shown and cropped. */
+    private var displayedBitmap: Bitmap? = null
+    private var selectedFilter: ImageFilter = ImageFilter.COLOR
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +52,7 @@ class CropActivity : AppCompatActivity() {
             finish()
             return
         }
-        bitmap = loaded
+        originalBitmap = loaded
 
         binding.toolbar.setNavigationOnClickListener {
             setResult(RESULT_CANCELED)
@@ -53,23 +61,46 @@ class CropActivity : AppCompatActivity() {
         binding.buttonUse.setOnClickListener { applyCropAndFinish() }
         binding.buttonFullPage.setOnClickListener { binding.cropView.resetToFullImage() }
         binding.buttonRotate.setOnClickListener { rotateImage() }
+        binding.filterGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            selectedFilter = when (checkedId) {
+                R.id.buttonFilterEnhance -> ImageFilter.ENHANCE
+                R.id.buttonFilterGrayscale -> ImageFilter.GRAYSCALE
+                R.id.buttonFilterBw -> ImageFilter.BLACK_WHITE
+                else -> ImageFilter.COLOR
+            }
+            refreshDisplayed()
+        }
 
         binding.cropView.post {
-            binding.cropView.setImage(loaded, EdgeDetector.detectQuad(loaded))
+            refreshDisplayed(newQuad = EdgeDetector.detectQuad(loaded))
+        }
+    }
+
+    private fun refreshDisplayed(newQuad: FloatArray? = null) {
+        val source = originalBitmap ?: return
+        val old = displayedBitmap
+        val filtered = ImageFilters.apply(source, selectedFilter)
+        if (old != null && old !== source && old !== filtered) old.recycle()
+        displayedBitmap = filtered
+        if (newQuad != null) {
+            binding.cropView.setImage(filtered, newQuad)
+        } else {
+            binding.cropView.updateBitmap(filtered)
         }
     }
 
     private fun rotateImage() {
-        val current = bitmap ?: return
+        val current = originalBitmap ?: return
         val matrix = Matrix().apply { postRotate(90f) }
         val rotated = Bitmap.createBitmap(current, 0, 0, current.width, current.height, matrix, true)
         current.recycle()
-        bitmap = rotated
-        binding.cropView.setImage(rotated, EdgeDetector.detectQuad(rotated))
+        originalBitmap = rotated
+        refreshDisplayed(newQuad = EdgeDetector.detectQuad(rotated))
     }
 
     private fun applyCropAndFinish() {
-        val source = bitmap ?: return
+        val source = displayedBitmap ?: return
         binding.buttonUse.isEnabled = false
         try {
             val cropped = Perspective.crop(source, binding.cropView.getQuad())
@@ -116,8 +147,11 @@ class CropActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        bitmap?.recycle()
-        bitmap = null
+        val original = originalBitmap
+        displayedBitmap?.let { if (it !== original) it.recycle() }
+        original?.recycle()
+        displayedBitmap = null
+        originalBitmap = null
         super.onDestroy()
     }
 }

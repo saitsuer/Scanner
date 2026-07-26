@@ -44,6 +44,10 @@
     <string name="camera_permission_denied">Camera permission is required</string>
     <string name="no_camera_use_gallery">Camera not available. You can add pages from the gallery.</string>
     <string name="crop_title">Adjust edges</string>
+    <string name="filter_color">Color</string>
+    <string name="filter_enhance">Enhance</string>
+    <string name="filter_grayscale">Grayscale</string>
+    <string name="filter_bw">B&amp;W</string>
     <string name="id_pages_ready">Front and back are ready. Tap Done to continue.</string>
     <string name="id_front_captured">Front captured. Now capture the back.</string>
     <string name="id_pages_capped">Only the first 2 pages (front and back) are used for ID scans.</string>

@@ -94,7 +94,7 @@ class FinalizeActivity : AppCompatActivity() {
             documentType == DocumentType.ID ->
                 PdfBuilder.idCardOnLetter(imageFiles, output, sideBySide = sideBySide)
             else ->
-                PdfBuilder.fromImageFiles(imageFiles, output, enhance = true)
+                PdfBuilder.fromImageFiles(imageFiles, output)
         }
     }
 
