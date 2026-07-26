@@ -35,7 +35,8 @@
     <string name="capture">Capture</string>
     <string name="done">Done</string>
     <string name="hint_document">Place the page in frame, then capture. You can add more pages.</string>
-    <string name="hint_id">Align your driver\'s license or state ID in the guide. Capture the front, then the back.</string>
+    <string name="hint_id">Align the front of your driver\'s license or state ID in the guide, then capture.</string>
+    <string name="hint_id_back">Now align the back of your driver\'s license or state ID in the guide, then capture.</string>
     <string name="hint_passport">Align the passport photo page in the guide. Visa/endorsement page is optional.</string>
     <string name="pages_captured">%1$d of %2$d</string>
     <string name="page_captured">Added (%1$d)</string>
@@ -44,6 +45,8 @@
     <string name="no_camera_use_gallery">Camera not available. You can add pages from the gallery.</string>
     <string name="crop_title">Adjust edges</string>
     <string name="id_pages_ready">Front and back are ready. Tap Done to continue.</string>
+    <string name="id_front_captured">Front captured. Now capture the back.</string>
+    <string name="id_pages_capped">Only the first 2 pages (front and back) are used for ID scans.</string>
     <string name="passport_photo_ready">Photo page added. Add a visa page (optional) or tap Done.</string>
     <string name="passport_pages_ready">Passport pages ready. Tap Done to continue.</string>
     <string name="id_layout_title">ID layout on Letter page</string>

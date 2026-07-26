@@ -54,7 +54,11 @@ class CaptureActivity : AppCompatActivity() {
         }
 
     private val minPagesToFinish: Int
-        get() = if (isPassport) 1 else if (documentType == DocumentType.ID) 1 else 1
+        get() = when {
+            isPassport -> 1
+            documentType == DocumentType.ID -> 2 // front and back both required
+            else -> 1
+        }
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -81,6 +85,8 @@ class CaptureActivity : AppCompatActivity() {
                     isPassport && pageFiles.size >= 2 -> getString(R.string.passport_pages_ready)
                     documentType == DocumentType.ID && pageFiles.size >= maxPages ->
                         getString(R.string.id_pages_ready)
+                    documentType == DocumentType.ID && pageFiles.size == 1 ->
+                        getString(R.string.id_front_captured)
                     else -> getString(R.string.page_captured, pageFiles.size)
                 }
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
@@ -236,6 +242,13 @@ class CaptureActivity : AppCompatActivity() {
     private fun updatePageCount() {
         binding.textPageCount.text = getString(R.string.pages_captured, pageFiles.size, maxPages)
         binding.buttonDone.isEnabled = pageFiles.size >= minPagesToFinish
+        if (documentType == DocumentType.ID && !isPassport) {
+            binding.textHint.text = if (pageFiles.isEmpty()) {
+                getString(R.string.hint_id)
+            } else {
+                getString(R.string.hint_id_back)
+            }
+        }
     }
 
     private fun finishAndSave() {

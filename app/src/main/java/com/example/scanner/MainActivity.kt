@@ -43,12 +43,18 @@ class MainActivity : AppCompatActivity() {
             }
             val pageUris = scanResult.pages?.mapNotNull { it.imageUri } ?: emptyList()
             if (pendingType == DocumentType.ID && pageUris.isNotEmpty()) {
+                // Defensive cap: ID scans are front+back only, regardless of
+                // how many pages the ML Kit scanner UI happened to return.
+                if (pageUris.size > 2) {
+                    Toast.makeText(this, R.string.id_pages_capped, Toast.LENGTH_LONG).show()
+                }
+                val cappedUris = pageUris.take(2)
                 val identity = pendingIdentityType
                 if (identity?.isPassport == true) {
-                    openFinalizeFromUris(pageUris, sideBySide = false)
+                    openFinalizeFromUris(cappedUris, sideBySide = false)
                 } else {
                     IdLayoutChooser.show(this) { sideBySide ->
-                        openFinalizeFromUris(pageUris, sideBySide)
+                        openFinalizeFromUris(cappedUris, sideBySide)
                     }
                 }
             } else {
