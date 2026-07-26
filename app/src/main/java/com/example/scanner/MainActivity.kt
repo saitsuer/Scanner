@@ -126,16 +126,6 @@ class MainActivity : AppCompatActivity() {
     private fun startScan(type: DocumentType) {
         pendingType = type
         if (type == DocumentType.DOCUMENT) pendingIdentityType = null
-
-        // Driver's license / state ID always use our own capture -> crop -> capture ->
-        // crop -> layout flow, so front/back and filters stay fully under our control
-        // instead of Google's document-scanner UI.
-        val identity = pendingIdentityType
-        if (type == DocumentType.ID && (identity == IdentityType.DRIVERS_LICENSE || identity == IdentityType.STATE_ID)) {
-            startBuiltInScan(type)
-            return
-        }
-
         MlKitScanner.start(
             activity = this,
             type = type,
