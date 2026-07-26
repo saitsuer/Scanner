@@ -60,11 +60,13 @@ object BusinessCardRenderer {
     ) {
         inCardSpace(canvas, bounds) {
             drawBackground(canvas)
-            drawAccentLine(canvas, card.accentColor)
-            drawWatermark(canvas, logoBitmap)
-            drawServicesRibbon(canvas, card)
-            drawServicesColumns(canvas, card)
-            drawLogoSlot(canvas, logoBitmap, RectF(198f, 18f, 232f, 42f))
+            if (!card.blankBack) {
+                drawAccentLine(canvas, card.accentColor)
+                drawWatermark(canvas, logoBitmap)
+                drawServicesRibbon(canvas, card)
+                drawServicesColumns(canvas, card)
+                drawLogoSlot(canvas, logoBitmap, RectF(198f, 18f, 232f, 42f))
+            }
         }
     }
 
@@ -89,7 +91,7 @@ object BusinessCardRenderer {
     }
 
     private fun drawNameBlock(canvas: Canvas, card: BusinessCard) {
-        val namePaint = textPaint(card.primaryColor, 12.5f, bold = true)
+        val namePaint = textPaint(card.primaryColor, 12.5f * card.fontScale, bold = true)
         canvas.drawText(card.fullName.uppercase(), 24f, 42f, namePaint)
 
         val underline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -98,7 +100,7 @@ object BusinessCardRenderer {
         }
         canvas.drawLine(24f, 46f, 52f, 46f, underline)
 
-        val titlePaint = textPaint(mix(card.primaryColor, Color.WHITE, 0.35f), 7f)
+        val titlePaint = textPaint(mix(card.primaryColor, Color.WHITE, 0.35f), 7f * card.fontScale)
         canvas.drawText(card.title, 24f, 58f, titlePaint)
     }
 
@@ -108,7 +110,7 @@ object BusinessCardRenderer {
         val badgeRadius = 4.6f
         val startY = 76f
         val rowSpacing = 13f
-        val textPaint = textPaint(mix(card.primaryColor, Color.BLACK, 0.15f), 6.2f)
+        val textPaint = textPaint(mix(card.primaryColor, Color.BLACK, 0.15f), 6.2f * card.fontScale)
 
         for (i in 0 until ICON_ROW_COUNT) {
             val value = rows.getOrNull(i)?.trim().orEmpty()
@@ -163,7 +165,7 @@ object BusinessCardRenderer {
         val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = card.primaryColor }
         canvas.drawPath(path, fill)
 
-        val label = textPaint(Color.WHITE, 8f, bold = true)
+        val label = textPaint(Color.WHITE, 8f * card.fontScale, bold = true)
         canvas.drawText("SERVICES", 18f, 29.5f, label)
 
         val underline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -184,7 +186,7 @@ object BusinessCardRenderer {
         val bottomLimit = CARD_HEIGHT_PT - 8f
         val maxRows = maxOf(col1.size, col2.size).coerceAtLeast(1)
         val rowSpacing = min(8.5f, (bottomLimit - startY) / maxRows)
-        val fontSize = min(5.4f, rowSpacing - 1.2f).coerceAtLeast(3.6f)
+        val fontSize = min(5.4f * card.fontScale, rowSpacing - 1.2f).coerceAtLeast(3.2f)
 
         drawServiceColumn(canvas, col1, 21f, 24f, startY, rowSpacing, fontSize, card.accentColor, 78f)
         drawServiceColumn(canvas, col2, 102f, 105f, startY, rowSpacing, fontSize, card.accentColor, 78f)

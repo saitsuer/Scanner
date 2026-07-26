@@ -13,6 +13,8 @@ data class BusinessCard(
     val primaryColor: Int,
     val accentColor: Int,
     val template: CardTemplate = CardTemplate.QUANTUM,
+    val fontScale: Float = 1f,
+    val blankBack: Boolean = false,
 )
 
 data class ColorPreset(val primary: Int, val accent: Int) {

@@ -103,8 +103,8 @@
     <string name="card_qr_value">QR code link</string>
     <string name="card_qr_value_hint">Defaults to your website</string>
     <string name="card_colors">Brand colors</string>
-    <string name="card_preview_button">Preview</string>
-    <string name="card_back_to_edit">Back to edit</string>
+    <string name="card_font_size">Text size</string>
+    <string name="card_blank_back">Leave back side blank</string>
     <string name="card_front">Front</string>
     <string name="card_back">Back</string>
     <string name="card_format">Export format</string>

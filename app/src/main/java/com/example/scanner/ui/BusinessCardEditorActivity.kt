@@ -10,7 +10,12 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +31,7 @@ import com.example.scanner.model.BusinessCard
 import com.example.scanner.model.ColorPreset
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.roundToInt
 
 class BusinessCardEditorActivity : AppCompatActivity() {
 
@@ -33,6 +39,9 @@ class BusinessCardEditorActivity : AppCompatActivity() {
         const val EXTRA_DOCUMENT_ID = "document_id"
         private const val PREVIEW_SCALE = 4f
         private const val LOGO_MAX_DIM = 1024
+        private const val PREVIEW_DEBOUNCE_MS = 200L
+        private const val FONT_SCALE_MIN = 0.8f
+        private const val FONT_SCALE_RANGE = 0.5f
     }
 
     private lateinit var binding: ActivityBusinessCardEditorBinding
@@ -47,6 +56,15 @@ class BusinessCardEditorActivity : AppCompatActivity() {
     private var frontBitmap: Bitmap? = null
     private var backBitmap: Bitmap? = null
     private var showingFront = true
+
+    private val previewHandler = Handler(Looper.getMainLooper())
+    private val previewRunnable = Runnable { renderPreview(buildCard()) }
+
+    private val liveWatcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        override fun afterTextChanged(s: Editable?) = schedulePreviewUpdate()
+    }
 
     private val logoLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -65,19 +83,28 @@ class BusinessCardEditorActivity : AppCompatActivity() {
         } else {
             getString(R.string.card_editor_title)
         }
-        binding.toolbar.setNavigationOnClickListener {
-            if (binding.previewSection.visibility == View.VISIBLE) showForm() else finish()
-        }
+        binding.toolbar.setNavigationOnClickListener { finish() }
 
         buildColorSwatches()
         binding.buttonPickLogo.setOnClickListener { logoLauncher.launch("image/*") }
-        binding.buttonPreview.setOnClickListener { showPreview() }
-        binding.buttonBackToForm.setOnClickListener { showForm() }
         binding.buttonShowFront.setOnClickListener { showingFront = true; updatePreviewImage() }
         binding.buttonShowBack.setOnClickListener { showingFront = false; updatePreviewImage() }
         binding.buttonSaveCard.setOnClickListener { save() }
+        binding.switchBlankBack.setOnCheckedChangeListener { _, _ -> schedulePreviewUpdate() }
+        binding.seekFontSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = schedulePreviewUpdate()
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
 
-        editingId?.let { loadExisting(it) }
+        for (input in listOf(
+            binding.inputName, binding.inputTitle, binding.inputPhone, binding.inputEmail,
+            binding.inputWebsite, binding.inputAddress, binding.inputServices, binding.inputQrValue,
+        )) {
+            input.addTextChangedListener(liveWatcher)
+        }
+
+        editingId?.let { loadExisting(it) } ?: renderPreview(buildCard())
     }
 
     private fun loadExisting(id: String) {
@@ -92,6 +119,8 @@ class BusinessCardEditorActivity : AppCompatActivity() {
         binding.inputServices.setText(card.services.joinToString("\n"))
         binding.inputQrValue.setText(card.qrValue)
         binding.inputCardTitle.setText(doc.title)
+        binding.switchBlankBack.isChecked = card.blankBack
+        binding.seekFontSize.progress = scaleToProgress(card.fontScale)
 
         primaryColor = card.primaryColor
         accentColor = card.accentColor
@@ -104,7 +133,19 @@ class BusinessCardEditorActivity : AppCompatActivity() {
             logoFile = file
             showLogoPreview(file)
         }
+
+        renderPreview(card)
     }
+
+    private fun schedulePreviewUpdate() {
+        previewHandler.removeCallbacks(previewRunnable)
+        previewHandler.postDelayed(previewRunnable, PREVIEW_DEBOUNCE_MS)
+    }
+
+    private fun progressToScale(progress: Int): Float = FONT_SCALE_MIN + (progress / 100f) * FONT_SCALE_RANGE
+
+    private fun scaleToProgress(scale: Float): Int =
+        (((scale - FONT_SCALE_MIN) / FONT_SCALE_RANGE) * 100f).roundToInt().coerceIn(0, 100)
 
     private fun buildColorSwatches() {
         binding.colorSwatchRow.removeAllViews()
@@ -122,6 +163,7 @@ class BusinessCardEditorActivity : AppCompatActivity() {
                     primaryColor = preset.primary
                     accentColor = preset.accent
                     buildColorSwatches()
+                    schedulePreviewUpdate()
                 }
             }
             binding.colorSwatchRow.addView(view)
@@ -140,9 +182,6 @@ class BusinessCardEditorActivity : AppCompatActivity() {
         val layer = LayerDrawable(arrayOf(base, accentDot))
         val inset = (16 * density).toInt()
         layer.setLayerInset(1, inset, inset, 0, 0)
-        if (selected) {
-            layer.setLayerInset(0, 0, 0, 0, 0)
-        }
         val ring = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(Color.TRANSPARENT)
@@ -173,6 +212,7 @@ class BusinessCardEditorActivity : AppCompatActivity() {
 
             logoFile = dest
             showLogoPreview(dest)
+            schedulePreviewUpdate()
         } catch (e: Exception) {
             Toast.makeText(this, e.message ?: getString(R.string.scan_failed), Toast.LENGTH_LONG).show()
         }
@@ -203,27 +243,9 @@ class BusinessCardEditorActivity : AppCompatActivity() {
             logoFileName = null,
             primaryColor = primaryColor,
             accentColor = accentColor,
+            fontScale = progressToScale(binding.seekFontSize.progress),
+            blankBack = binding.switchBlankBack.isChecked,
         )
-    }
-
-    private fun showPreview() {
-        val name = binding.inputName.text?.toString()?.trim().orEmpty()
-        if (name.isEmpty()) {
-            binding.inputName.error = getString(R.string.required_field)
-            return
-        }
-        val card = buildCard()
-        renderPreview(card)
-        if (binding.inputCardTitle.text.isNullOrBlank()) {
-            binding.inputCardTitle.setText(card.fullName)
-        }
-        binding.formSection.visibility = View.GONE
-        binding.previewSection.visibility = View.VISIBLE
-    }
-
-    private fun showForm() {
-        binding.previewSection.visibility = View.GONE
-        binding.formSection.visibility = View.VISIBLE
     }
 
     private fun renderPreview(card: BusinessCard) {
@@ -241,7 +263,6 @@ class BusinessCardEditorActivity : AppCompatActivity() {
         backBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { bmp ->
             BusinessCardRenderer.drawBack(this, Canvas(bmp), bounds, card, logoBitmap)
         }
-        showingFront = true
         updatePreviewImage()
     }
 
@@ -252,6 +273,11 @@ class BusinessCardEditorActivity : AppCompatActivity() {
     }
 
     private fun save() {
+        val name = binding.inputName.text?.toString()?.trim().orEmpty()
+        if (name.isEmpty()) {
+            binding.inputName.error = getString(R.string.required_field)
+            return
+        }
         binding.buttonSaveCard.isEnabled = false
         try {
             val card = buildCard()
@@ -260,11 +286,11 @@ class BusinessCardEditorActivity : AppCompatActivity() {
             val pdfFile = File(cacheDir, "card_${System.currentTimeMillis()}.pdf")
             PdfBuilder.businessCard(this, card, logoBitmap, qrBitmap, pdfFile)
 
-            val titleOverride = binding.inputCardTitle.text?.toString()
+            val titleOverride = binding.inputCardTitle.text?.toString()?.takeIf { it.isNotBlank() } ?: name
             val doc = repository.saveBusinessCard(card, pdfFile, logoFile, titleOverride, existingId = editingId)
 
             if (binding.radioCardPng.isChecked) {
-                sharePngExport(doc.let { repository.fileFor(it) })
+                sharePngExport(repository.fileFor(doc))
             }
 
             setResult(RESULT_OK, Intent().putExtra(EXTRA_DOCUMENT_ID, doc.id))
@@ -289,6 +315,7 @@ class BusinessCardEditorActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        previewHandler.removeCallbacks(previewRunnable)
         frontBitmap?.recycle()
         backBitmap?.recycle()
         super.onDestroy()

@@ -204,6 +204,8 @@ class DocumentRepository(context: Context) {
                 primaryColor = o.getInt("primaryColor"),
                 accentColor = o.getInt("accentColor"),
                 template = runCatching { CardTemplate.valueOf(o.optString("template")) }.getOrDefault(CardTemplate.QUANTUM),
+                fontScale = if (o.has("fontScale")) o.getDouble("fontScale").toFloat() else 1f,
+                blankBack = o.optBoolean("blankBack", false),
             )
         }.getOrNull()
     }
@@ -225,6 +227,8 @@ class DocumentRepository(context: Context) {
             .put("primaryColor", card.primaryColor)
             .put("accentColor", card.accentColor)
             .put("template", card.template.name)
+            .put("fontScale", card.fontScale.toDouble())
+            .put("blankBack", card.blankBack)
         File(rootDir, fileName).writeText(o.toString())
     }
 

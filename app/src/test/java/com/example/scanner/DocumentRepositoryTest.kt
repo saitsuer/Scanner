@@ -88,6 +88,8 @@ class DocumentRepositoryTest {
             logoFileName = null,
             primaryColor = 0xFF16324F.toInt(),
             accentColor = 0xFFD4A017.toInt(),
+            fontScale = 1.15f,
+            blankBack = true,
         )
 
         val doc = repository.saveBusinessCard(card, pdfFile, logoFile, titleOverride = null)
@@ -98,6 +100,8 @@ class DocumentRepositoryTest {
         val loaded = repository.loadBusinessCard(doc)
         assertEquals("Jane Smith", loaded?.fullName)
         assertEquals(listOf("Consulting", "Advisory"), loaded?.services)
+        assertEquals(1.15f, loaded?.fontScale ?: 0f, 0.001f)
+        assertTrue(loaded?.blankBack == true)
         assertTrue(repository.businessCardLogoFile(loaded!!)?.exists() == true)
 
         assertTrue(repository.delete(doc.id))
