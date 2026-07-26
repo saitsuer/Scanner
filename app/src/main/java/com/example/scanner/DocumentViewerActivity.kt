@@ -11,15 +11,18 @@ import android.os.ParcelFileDescriptor
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import com.example.scanner.data.DocumentRepository
 import com.example.scanner.data.ExportHelper
 import com.example.scanner.databinding.ActivityDocumentViewerBinding
+import com.example.scanner.model.DocumentType
 import com.example.scanner.model.ExportFormat
 import com.example.scanner.model.JpegQuality
 import com.example.scanner.model.ScannedDocument
+import com.example.scanner.ui.BusinessCardEditorActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -42,6 +45,13 @@ class DocumentViewerActivity : AppCompatActivity() {
     private var pageCount = 0
     private var currentBitmap: Bitmap? = null
 
+    private val editLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            document = repository.get(document.id) ?: document
+            binding.toolbar.title = document.title
+            reopenDocument()
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDocumentViewerBinding.inflate(layoutInflater)
@@ -59,8 +69,17 @@ class DocumentViewerActivity : AppCompatActivity() {
         binding.toolbar.title = document.title
         binding.toolbar.setNavigationOnClickListener { finish() }
         binding.toolbar.inflateMenu(R.menu.menu_document_viewer)
+        binding.toolbar.menu.findItem(R.id.action_edit_card)?.isVisible =
+            document.type == DocumentType.BUSINESS_CARD
         binding.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.action_edit_card -> {
+                    editLauncher.launch(
+                        Intent(this, BusinessCardEditorActivity::class.java)
+                            .putExtra(BusinessCardEditorActivity.EXTRA_DOCUMENT_ID, document.id)
+                    )
+                    true
+                }
                 R.id.action_rename -> {
                     promptRename()
                     true
@@ -77,6 +96,17 @@ class DocumentViewerActivity : AppCompatActivity() {
         binding.buttonShare.setOnClickListener { sharePrimary() }
         binding.buttonOcr.setOnClickListener { runOcr() }
 
+        openDocument()
+    }
+
+    private fun reopenDocument() {
+        currentBitmap?.recycle()
+        currentBitmap = null
+        renderer?.close()
+        descriptor?.close()
+        renderer = null
+        descriptor = null
+        currentPage = 0
         openDocument()
     }
 

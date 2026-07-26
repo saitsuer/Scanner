@@ -19,8 +19,8 @@ android {
         applicationId = "com.saitsuer.scanner"
         minSdk = 24
         targetSdk = 34
-        versionCode = 10
-        versionName = "2.4.0"
+        versionCode = 11
+        versionName = "2.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += setOf("en")
@@ -104,6 +104,7 @@ dependencies {
 
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.zxing:core:3.5.3")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.12.2")

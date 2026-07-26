@@ -43,6 +43,7 @@ class DocumentListAdapter(
             val typeLabel = when {
                 doc.identityType != null -> doc.identityType.defaultTitleLabel()
                 doc.type == DocumentType.ID -> context.getString(R.string.type_id)
+                doc.type == DocumentType.BUSINESS_CARD -> context.getString(R.string.type_business_card)
                 else -> context.getString(R.string.type_document)
             }
             val date = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)

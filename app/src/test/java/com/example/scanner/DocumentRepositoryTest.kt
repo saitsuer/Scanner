@@ -3,6 +3,7 @@ package com.example.scanner
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.example.scanner.data.DocumentRepository
+import com.example.scanner.model.BusinessCard
 import com.example.scanner.model.DocumentType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -69,5 +70,38 @@ class DocumentRepositoryTest {
         assertTrue(repository.list().isEmpty())
         val backups = documentsDir.listFiles { f -> f.name.startsWith("index_corrupt_") }
         assertTrue(backups != null && backups.isNotEmpty())
+    }
+
+    @Test
+    fun saveLoadAndDeleteBusinessCard() {
+        val pdfFile = File(app.cacheDir, "test_card.pdf").apply { writeBytes("%PDF-1.4 fake".toByteArray()) }
+        val logoFile = File(app.cacheDir, "test_logo.png").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        val card = BusinessCard(
+            fullName = "Jane Smith",
+            title = "CEO",
+            phone = "555-1234",
+            email = "jane@example.com",
+            website = "example.com",
+            address = "123 Main St",
+            services = listOf("Consulting", "Advisory"),
+            qrValue = "example.com",
+            logoFileName = null,
+            primaryColor = 0xFF16324F.toInt(),
+            accentColor = 0xFFD4A017.toInt(),
+        )
+
+        val doc = repository.saveBusinessCard(card, pdfFile, logoFile, titleOverride = null)
+        assertEquals(DocumentType.BUSINESS_CARD, doc.type)
+        assertTrue(repository.fileFor(doc).exists())
+        assertEquals(1, repository.list().size)
+
+        val loaded = repository.loadBusinessCard(doc)
+        assertEquals("Jane Smith", loaded?.fullName)
+        assertEquals(listOf("Consulting", "Advisory"), loaded?.services)
+        assertTrue(repository.businessCardLogoFile(loaded!!)?.exists() == true)
+
+        assertTrue(repository.delete(doc.id))
+        assertFalse(repository.fileFor(doc).exists())
+        assertTrue(repository.list().isEmpty())
     }
 }

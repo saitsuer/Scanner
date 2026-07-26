@@ -38,6 +38,40 @@ object ExportHelper {
         return out
     }
 
+    /**
+     * Renders every page of a (physically small) PDF at a fixed DPI rather
+     * than the width-based heuristic [pdfToJpegs] uses, since that heuristic
+     * under-resolves a 252x144pt business card. Saves lossless PNGs.
+     */
+    fun cardPngs(pdfFile: File, outputDir: File, dpi: Int = 300): List<File> {
+        outputDir.mkdirs()
+        val scale = dpi / 72f
+        val descriptor = ParcelFileDescriptor.open(pdfFile, ParcelFileDescriptor.MODE_READ_ONLY)
+        val renderer = PdfRenderer(descriptor)
+        val out = mutableListOf<File>()
+        try {
+            for (i in 0 until renderer.pageCount) {
+                renderer.openPage(i).use { page ->
+                    val width = (page.width * scale).toInt().coerceAtLeast(1)
+                    val height = (page.height * scale).toInt().coerceAtLeast(1)
+                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    bitmap.eraseColor(Color.WHITE)
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    val file = File(outputDir, "page_$i.png")
+                    FileOutputStream(file).use { stream ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    }
+                    bitmap.recycle()
+                    out.add(file)
+                }
+            }
+        } finally {
+            renderer.close()
+            descriptor.close()
+        }
+        return out
+    }
+
     fun renderPdfPreview(pdfFile: File): Bitmap? {
         if (!pdfFile.exists()) return null
         val descriptor = ParcelFileDescriptor.open(pdfFile, ParcelFileDescriptor.MODE_READ_ONLY)

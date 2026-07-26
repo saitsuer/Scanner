@@ -1,6 +1,8 @@
 # Scanner
 
-Android app to scan US driver’s licenses, state IDs, passports, and documents into PDF or JPEG.
+Android app to scan US driver’s licenses, state IDs, passports, and documents
+into PDF or JPEG, and to design a two-sided business card from your own
+details.
 
 ## Features
 
@@ -11,6 +13,10 @@ Android app to scan US driver’s licenses, state IDs, passports, and documents 
 - Review screen: preview, rename, export PDF or JPEG (quality)
 - Library rename + export JPEG from viewer
 - OCR text extraction
+- Business card designer: fill in name/title/contact/services, pick a brand
+  color pair, add a logo and QR link, then export a print-ready two-sided
+  card (US standard 3.5×2in) as PDF or PNG; saved designs can be reopened
+  and edited later
 
 ## Privacy / build notes
 
@@ -28,3 +34,5 @@ Android app to scan US driver’s licenses, state IDs, passports, and documents 
 ## Flow
 
 Home → Scan ID/passport (pick type) or Scan document → Camera → Crop → (layout if card) → Review & save → Library
+
+Home → Create business card → fill in details, logo, colors, QR link → Preview (front/back) → Save PDF/PNG → Library (reopen to edit)

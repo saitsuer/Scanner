@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_edit_card"
+        android:title="@string/action_edit_card"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_rename"
         android:title="@string/rename_title"
         app:showAsAction="never" />

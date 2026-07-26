@@ -1,5 +1,6 @@
 package com.example.scanner.data
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -9,6 +10,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.pdf.PdfDocument
+import com.example.scanner.model.BusinessCard
 import com.example.scanner.scan.CardAutoCrop
 import java.io.File
 import java.io.FileOutputStream
@@ -205,6 +207,37 @@ object PdfBuilder {
             }
         }
         return minOf(images.size, 2)
+    }
+
+    /**
+     * Renders a business card front + back at the card's native size
+     * (252x144pt / 3.5x2in), one page each.
+     */
+    fun businessCard(context: Context, card: BusinessCard, logoBitmap: Bitmap?, qrBitmap: Bitmap?, output: File): Int {
+        val pdf = PdfDocument()
+        try {
+            val cardWidth = BusinessCardRenderer.CARD_WIDTH_PT.toInt()
+            val cardHeight = BusinessCardRenderer.CARD_HEIGHT_PT.toInt()
+            val bounds = RectF(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat())
+
+            val frontInfo = PdfDocument.PageInfo.Builder(cardWidth, cardHeight, 1).create()
+            val frontPage = pdf.startPage(frontInfo)
+            BusinessCardRenderer.drawFront(context, frontPage.canvas, bounds, card, logoBitmap, qrBitmap)
+            pdf.finishPage(frontPage)
+
+            val backInfo = PdfDocument.PageInfo.Builder(cardWidth, cardHeight, 2).create()
+            val backPage = pdf.startPage(backInfo)
+            BusinessCardRenderer.drawBack(context, backPage.canvas, bounds, card, logoBitmap)
+            pdf.finishPage(backPage)
+
+            FileOutputStream(output).use { pdf.writeTo(it) }
+        } finally {
+            try {
+                pdf.close()
+            } catch (_: IllegalStateException) {
+            }
+        }
+        return 2
     }
 
     /** Increases contrast / grayscale for a scanned-document look. */

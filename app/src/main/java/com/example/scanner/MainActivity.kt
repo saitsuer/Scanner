@@ -13,6 +13,7 @@ import com.example.scanner.databinding.ActivityMainBinding
 import com.example.scanner.model.DocumentType
 import com.example.scanner.model.IdentityType
 import com.example.scanner.scan.MlKitScanner
+import com.example.scanner.ui.BusinessCardEditorActivity
 import com.example.scanner.ui.DocumentListAdapter
 import com.example.scanner.ui.IdLayoutChooser
 import com.example.scanner.ui.IdentityTypeChooser
@@ -75,6 +76,16 @@ class MainActivity : AppCompatActivity() {
             openDocument(id)
         }
 
+    private val cardLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val id = result.data?.getStringExtra(BusinessCardEditorActivity.EXTRA_DOCUMENT_ID)
+                ?: return@registerForActivityResult
+            Toast.makeText(this, R.string.scan_saved, Toast.LENGTH_SHORT).show()
+            refreshLibrary()
+            openDocument(id)
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -95,6 +106,9 @@ class MainActivity : AppCompatActivity() {
                 pendingIdentityType = identity
                 startScan(DocumentType.ID)
             }
+        }
+        binding.buttonCreateCard.setOnClickListener {
+            cardLauncher.launch(Intent(this, BusinessCardEditorActivity::class.java))
         }
     }
 

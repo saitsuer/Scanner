@@ -3,6 +3,7 @@ package com.example.scanner.model
 enum class DocumentType {
     DOCUMENT,
     ID,
+    BUSINESS_CARD,
 }
 
 data class ScannedDocument(
@@ -14,4 +15,5 @@ data class ScannedDocument(
     val pageCount: Int,
     val identityType: IdentityType? = null,
     val exportFormat: ExportFormat = ExportFormat.PDF,
+    val cardDataFileName: String? = null,
 )
