@@ -6,6 +6,8 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Required by Play Services to download the ML Kit document scanner
+         module on first use; the app itself makes no network calls. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -45,6 +47,11 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:parentActivityName=".CaptureActivity" />
+
+        <activity
+            android:name=".FinalizeActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -12,4 +12,6 @@ data class ScannedDocument(
     val fileName: String,
     val createdAt: Long,
     val pageCount: Int,
+    val identityType: IdentityType? = null,
+    val exportFormat: ExportFormat = ExportFormat.PDF,
 )

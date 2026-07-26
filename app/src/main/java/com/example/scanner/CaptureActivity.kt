@@ -9,18 +9,19 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.example.scanner.ui.IdLayoutChooser
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
-import com.example.scanner.data.DocumentRepository
-import com.example.scanner.data.PdfBuilder
 import com.example.scanner.databinding.ActivityCaptureBinding
 import com.example.scanner.model.DocumentType
+import com.example.scanner.model.IdentityType
+import com.example.scanner.ui.IdGuideOverlay
+import com.example.scanner.ui.IdLayoutChooser
 import java.io.File
+import java.util.ArrayList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -28,12 +29,13 @@ class CaptureActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_DOCUMENT_TYPE = "document_type"
+        const val EXTRA_IDENTITY_TYPE = "identity_type"
         const val EXTRA_DOCUMENT_ID = "document_id"
     }
 
     private lateinit var binding: ActivityCaptureBinding
-    private lateinit var repository: DocumentRepository
     private lateinit var documentType: DocumentType
+    private var identityType: IdentityType? = null
     private lateinit var cameraExecutor: ExecutorService
 
     private var imageCapture: ImageCapture? = null
@@ -41,8 +43,18 @@ class CaptureActivity : AppCompatActivity() {
     private lateinit var sessionDir: File
     private var pendingCropFile: File? = null
 
+    private val isPassport: Boolean
+        get() = identityType?.isPassport == true
+
     private val maxPages: Int
-        get() = if (documentType == DocumentType.ID) 2 else 30
+        get() = when {
+            documentType != DocumentType.ID -> 30
+            isPassport -> 2 // photo + optional visa
+            else -> 2
+        }
+
+    private val minPagesToFinish: Int
+        get() = if (isPassport) 1 else if (documentType == DocumentType.ID) 1 else 1
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -64,15 +76,30 @@ class CaptureActivity : AppCompatActivity() {
             if (result.resultCode == RESULT_OK) {
                 pageFiles.add(file)
                 updatePageCount()
-                val message = if (documentType == DocumentType.ID && pageFiles.size >= maxPages) {
-                    // Both sides captured; saving stays under the user's control
-                    getString(R.string.id_pages_ready)
-                } else {
-                    getString(R.string.page_captured, pageFiles.size)
+                val message = when {
+                    isPassport && pageFiles.size == 1 -> getString(R.string.passport_photo_ready)
+                    isPassport && pageFiles.size >= 2 -> getString(R.string.passport_pages_ready)
+                    documentType == DocumentType.ID && pageFiles.size >= maxPages ->
+                        getString(R.string.id_pages_ready)
+                    else -> getString(R.string.page_captured, pageFiles.size)
                 }
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             } else {
                 file.delete()
+            }
+        }
+
+    private val finalizeLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val id = result.data?.getStringExtra(FinalizeActivity.EXTRA_DOCUMENT_ID)
+                setResult(
+                    RESULT_OK,
+                    Intent().putExtra(EXTRA_DOCUMENT_ID, id),
+                )
+                finish()
+            } else {
+                binding.buttonDone.isEnabled = pageFiles.isNotEmpty()
             }
         }
 
@@ -89,26 +116,37 @@ class CaptureActivity : AppCompatActivity() {
         binding = ActivityCaptureBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        repository = DocumentRepository(this)
         documentType = runCatching {
             DocumentType.valueOf(intent.getStringExtra(EXTRA_DOCUMENT_TYPE) ?: DocumentType.DOCUMENT.name)
         }.getOrDefault(DocumentType.DOCUMENT)
+        identityType = intent.getStringExtra(EXTRA_IDENTITY_TYPE)?.let {
+            runCatching { IdentityType.valueOf(it) }.getOrNull()
+        }
 
         sessionDir = File(cacheDir, "capture_${System.currentTimeMillis()}").apply { mkdirs() }
         cameraExecutor = Executors.newSingleThreadExecutor()
 
-        binding.toolbar.title = if (documentType == DocumentType.ID) {
-            getString(R.string.scan_id)
-        } else {
-            getString(R.string.scan_document)
+        binding.toolbar.title = when {
+            isPassport -> getString(R.string.identity_passport)
+            documentType == DocumentType.ID -> identityType?.defaultTitleLabel() ?: getString(R.string.scan_id)
+            else -> getString(R.string.scan_document)
         }
         binding.toolbar.setNavigationOnClickListener { finish() }
-        binding.textHint.text = if (documentType == DocumentType.ID) {
-            getString(R.string.hint_id)
-        } else {
-            getString(R.string.hint_document)
+        binding.textHint.text = when {
+            isPassport -> getString(R.string.hint_passport)
+            documentType == DocumentType.ID -> getString(R.string.hint_id)
+            else -> getString(R.string.hint_document)
         }
-        binding.idGuide.visibility = if (documentType == DocumentType.ID) View.VISIBLE else View.GONE
+        if (documentType == DocumentType.ID) {
+            binding.idGuide.visibility = View.VISIBLE
+            binding.idGuide.guideShape = if (isPassport) {
+                IdGuideOverlay.GuideShape.PASSPORT
+            } else {
+                IdGuideOverlay.GuideShape.CARD_LANDSCAPE
+            }
+        } else {
+            binding.idGuide.visibility = View.GONE
+        }
 
         binding.buttonCapture.setOnClickListener { takePhoto() }
         binding.buttonGallery.setOnClickListener { galleryLauncher.launch("image/*") }
@@ -197,44 +235,40 @@ class CaptureActivity : AppCompatActivity() {
 
     private fun updatePageCount() {
         binding.textPageCount.text = getString(R.string.pages_captured, pageFiles.size, maxPages)
-        binding.buttonDone.isEnabled = pageFiles.isNotEmpty()
+        binding.buttonDone.isEnabled = pageFiles.size >= minPagesToFinish
     }
 
     private fun finishAndSave() {
-        if (pageFiles.isEmpty()) return
-        if (documentType == DocumentType.ID) {
-            IdLayoutChooser.show(this) { sideBySide ->
-                savePdf(idSideBySide = sideBySide)
+        if (pageFiles.size < minPagesToFinish) return
+        binding.buttonDone.isEnabled = false
+        when {
+            documentType == DocumentType.ID && isPassport -> openFinalize(sideBySide = false)
+            documentType == DocumentType.ID -> {
+                IdLayoutChooser.show(this) { sideBySide ->
+                    openFinalize(sideBySide)
+                }
+                binding.buttonDone.isEnabled = true
             }
-        } else {
-            savePdf(idSideBySide = null)
+            else -> openFinalize(sideBySide = false)
         }
     }
 
-    /** [idSideBySide] null = regular multi-page document PDF. */
-    private fun savePdf(idSideBySide: Boolean?) {
-        binding.buttonDone.isEnabled = false
-        try {
-            val tempPdf = File(cacheDir, "scan_${System.currentTimeMillis()}.pdf")
-            // Keep IDs in color; enhance text documents for a scanned look
-            val count = if (idSideBySide != null) {
-                PdfBuilder.idCardOnLetter(pageFiles, tempPdf, sideBySide = idSideBySide)
-            } else {
-                PdfBuilder.fromImageFiles(pageFiles, tempPdf, enhance = true)
-            }
-            tempPdf.inputStream().use { input ->
-                val doc = repository.importPdf(input, documentType, count)
-                setResult(
-                    RESULT_OK,
-                    Intent().putExtra(EXTRA_DOCUMENT_ID, doc.id),
-                )
-            }
-            tempPdf.delete()
-            finish()
-        } catch (e: Exception) {
-            binding.buttonDone.isEnabled = true
-            Toast.makeText(this, e.message ?: getString(R.string.scan_failed), Toast.LENGTH_LONG).show()
+    private fun openFinalize(sideBySide: Boolean) {
+        // Copy pages out of sessionDir so onDestroy cleanup won't delete them mid-finalize
+        val stableDir = File(cacheDir, "finalize_src_${System.currentTimeMillis()}").apply { mkdirs() }
+        val stableFiles = pageFiles.mapIndexed { index, src ->
+            File(stableDir, "page_$index.jpg").also { src.copyTo(it, overwrite = true) }
         }
+        finalizeLauncher.launch(
+            Intent(this, FinalizeActivity::class.java)
+                .putStringArrayListExtra(
+                    FinalizeActivity.EXTRA_IMAGE_PATHS,
+                    ArrayList(stableFiles.map { it.absolutePath }),
+                )
+                .putExtra(FinalizeActivity.EXTRA_DOCUMENT_TYPE, documentType.name)
+                .putExtra(FinalizeActivity.EXTRA_IDENTITY_TYPE, identityType?.name)
+                .putExtra(FinalizeActivity.EXTRA_SIDE_BY_SIDE, sideBySide)
+        )
     }
 
     override fun onDestroy() {

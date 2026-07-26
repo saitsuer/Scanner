@@ -9,11 +9,24 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 
-/** Semi-transparent overlay with a card-shaped cutout for ID scanning. */
+/** Semi-transparent overlay with a card/passport-shaped cutout. */
 class IdGuideOverlay @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
+
+    enum class GuideShape {
+        /** Landscape CR-80 / ID-1 card */
+        CARD_LANDSCAPE,
+        /** ICAO TD3 passport data page (125 × 88 mm) */
+        PASSPORT,
+    }
+
+    var guideShape: GuideShape = GuideShape.CARD_LANDSCAPE
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     private val dimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#99000000")
@@ -30,12 +43,16 @@ class IdGuideOverlay @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
         val h = height.toFloat()
-        val cardRatio = 1.585f
-        var boxW = w * 0.86f
-        var boxH = boxW / cardRatio
-        if (boxH > h * 0.45f) {
-            boxH = h * 0.45f
-            boxW = boxH * cardRatio
+        val useRatio = when (guideShape) {
+            GuideShape.CARD_LANDSCAPE -> 1.585f
+            GuideShape.PASSPORT -> 125f / 88f
+        }
+        var boxW = w * if (guideShape == GuideShape.PASSPORT) 0.90f else 0.86f
+        var boxH = boxW / useRatio
+        val maxH = if (guideShape == GuideShape.PASSPORT) h * 0.55f else h * 0.45f
+        if (boxH > maxH) {
+            boxH = maxH
+            boxW = boxH * useRatio
         }
         cutout.set(
             (w - boxW) / 2f,

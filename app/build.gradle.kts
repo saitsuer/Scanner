@@ -16,12 +16,11 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        // Unique install id (harder to casually sideload over a known package)
         applicationId = "com.saitsuer.scanner"
         minSdk = 24
         targetSdk = 34
-        versionCode = 8
-        versionName = "2.2.3"
+        versionCode = 10
+        versionName = "2.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += setOf("en")

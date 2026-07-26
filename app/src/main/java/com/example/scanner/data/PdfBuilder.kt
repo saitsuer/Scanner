@@ -140,6 +140,73 @@ object PdfBuilder {
         return 1
     }
 
+    // ICAO TD3 passport data page (~125 × 88 mm) in PDF points
+    private const val PASSPORT_WIDTH_PT = 354.33f
+    private const val PASSPORT_HEIGHT_PT = 249.45f
+    private const val PASSPORT_CORNER_RADIUS_PT = 8f
+
+    /**
+     * Places passport photo page (and optional visa/endorsement page) on
+     * US Letter pages at real TD3 size, centered in the top half.
+     */
+    fun passportOnLetter(images: List<File>, output: File): Int {
+        require(images.isNotEmpty()) { "At least one page is required" }
+        val pdf = PdfDocument()
+        try {
+            val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+            images.take(2).forEachIndexed { index, file ->
+                val pageInfo = PdfDocument.PageInfo.Builder(
+                    LETTER_WIDTH,
+                    LETTER_HEIGHT,
+                    index + 1,
+                ).create()
+                val page = pdf.startPage(pageInfo)
+                val canvas = page.canvas
+                canvas.drawColor(Color.WHITE)
+
+                val decoded = BitmapFactory.decodeFile(file.absolutePath)
+                if (decoded != null) {
+                    val bitmap = CardAutoCrop.tighten(decoded)
+                    if (bitmap !== decoded) decoded.recycle()
+                    val left = (LETTER_WIDTH - PASSPORT_WIDTH_PT) / 2f
+                    val top = (TOP_HALF_HEIGHT - PASSPORT_HEIGHT_PT) / 2f
+                    val slot = RectF(
+                        left,
+                        top,
+                        left + PASSPORT_WIDTH_PT,
+                        top + PASSPORT_HEIGHT_PT,
+                    )
+                    val scale = maxOf(slot.width() / bitmap.width, slot.height() / bitmap.height)
+                    val w = bitmap.width * scale
+                    val h = bitmap.height * scale
+                    val x = slot.centerX() - w / 2f
+                    val y = slot.centerY() - h / 2f
+                    val clip = Path().apply {
+                        addRoundRect(
+                            slot,
+                            PASSPORT_CORNER_RADIUS_PT,
+                            PASSPORT_CORNER_RADIUS_PT,
+                            Path.Direction.CW,
+                        )
+                    }
+                    canvas.save()
+                    canvas.clipPath(clip)
+                    canvas.drawBitmap(bitmap, null, RectF(x, y, x + w, y + h), paint)
+                    canvas.restore()
+                    bitmap.recycle()
+                }
+                pdf.finishPage(page)
+            }
+            FileOutputStream(output).use { pdf.writeTo(it) }
+        } finally {
+            try {
+                pdf.close()
+            } catch (_: IllegalStateException) {
+            }
+        }
+        return minOf(images.size, 2)
+    }
+
     /** Increases contrast / grayscale for a scanned-document look. */
     private fun toDocumentBitmap(source: Bitmap): Bitmap {
         val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)

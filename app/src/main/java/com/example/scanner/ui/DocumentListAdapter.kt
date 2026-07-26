@@ -40,10 +40,10 @@ class DocumentListAdapter(
 
         fun bind(doc: ScannedDocument) {
             val context = binding.root.context
-            val typeLabel = if (doc.type == DocumentType.ID) {
-                context.getString(R.string.type_id)
-            } else {
-                context.getString(R.string.type_document)
+            val typeLabel = when {
+                doc.identityType != null -> doc.identityType.defaultTitleLabel()
+                doc.type == DocumentType.ID -> context.getString(R.string.type_id)
+                else -> context.getString(R.string.type_document)
             }
             val date = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
                 .format(Date(doc.createdAt))

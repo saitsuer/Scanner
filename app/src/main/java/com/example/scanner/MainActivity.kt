@@ -9,14 +9,16 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.scanner.data.DocumentRepository
-import com.example.scanner.data.PdfBuilder
 import com.example.scanner.databinding.ActivityMainBinding
 import com.example.scanner.model.DocumentType
+import com.example.scanner.model.IdentityType
 import com.example.scanner.scan.MlKitScanner
 import com.example.scanner.ui.DocumentListAdapter
 import com.example.scanner.ui.IdLayoutChooser
+import com.example.scanner.ui.IdentityTypeChooser
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import java.io.File
+import java.util.ArrayList
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,8 +27,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: DocumentListAdapter
 
     private var pendingType: DocumentType = DocumentType.DOCUMENT
+    private var pendingIdentityType: IdentityType? = null
 
-    /** Google's scanner UI (auto edges, corner adjust, filters) on real devices. */
     private val mlKitLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
             if (result.resultCode != RESULT_OK) {
@@ -39,63 +41,35 @@ class MainActivity : AppCompatActivity() {
                 return@registerForActivityResult
             }
             val pageUris = scanResult.pages?.mapNotNull { it.imageUri } ?: emptyList()
-            // IDs are composed life-size onto a single Letter page (top half)
             if (pendingType == DocumentType.ID && pageUris.isNotEmpty()) {
-                askIdLayout(pageUris)
+                val identity = pendingIdentityType
+                if (identity?.isPassport == true) {
+                    openFinalizeFromUris(pageUris, sideBySide = false)
+                } else {
+                    IdLayoutChooser.show(this) { sideBySide ->
+                        openFinalizeFromUris(pageUris, sideBySide)
+                    }
+                }
             } else {
                 importMlKitPdf(scanResult)
             }
         }
 
-    private fun askIdLayout(pageUris: List<android.net.Uri>) {
-        IdLayoutChooser.show(this) { sideBySide ->
-            importIdAsLetter(pageUris, sideBySide)
-        }
-    }
-
-    private fun importMlKitPdf(scanResult: GmsDocumentScanningResult) {
-        val pdf = scanResult.pdf
-        if (pdf?.uri == null) {
-            Toast.makeText(this, R.string.scan_failed, Toast.LENGTH_LONG).show()
-            return
-        }
-        val pageCount = pdf.pageCount.takeIf { it > 0 } ?: scanResult.pages?.size ?: 1
-        val doc = repository.importPdf(pdf.uri, pendingType, pageCount, contentResolver)
-        Toast.makeText(this, R.string.scan_saved, Toast.LENGTH_SHORT).show()
-        refreshLibrary()
-        openDocument(doc.id)
-    }
-
-    private fun importIdAsLetter(pageUris: List<android.net.Uri>, sideBySide: Boolean) {
-        try {
-            val dir = File(cacheDir, "id_letter_${System.currentTimeMillis()}").apply { mkdirs() }
-            val files = pageUris.mapIndexed { index, uri ->
-                File(dir, "side_$index.jpg").also { file ->
-                    contentResolver.openInputStream(uri)?.use { input ->
-                        file.outputStream().use { output -> input.copyTo(output) }
-                    }
-                }
-            }
-            val tempPdf = File(cacheDir, "id_letter_${System.currentTimeMillis()}.pdf")
-            PdfBuilder.idCardOnLetter(files, tempPdf, sideBySide = sideBySide)
-            val doc = tempPdf.inputStream().use { input ->
-                repository.importPdf(input, DocumentType.ID, 1)
-            }
-            tempPdf.delete()
-            dir.deleteRecursively()
-            Toast.makeText(this, R.string.scan_saved, Toast.LENGTH_SHORT).show()
-            refreshLibrary()
-            openDocument(doc.id)
-        } catch (e: Exception) {
-            Toast.makeText(this, e.message ?: getString(R.string.scan_failed), Toast.LENGTH_LONG).show()
-        }
-    }
-
-    /** Built-in camera + crop flow, used when the Play Services module is unavailable. */
     private val captureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != RESULT_OK) return@registerForActivityResult
-            val id = result.data?.getStringExtra(CaptureActivity.EXTRA_DOCUMENT_ID) ?: return@registerForActivityResult
+            val id = result.data?.getStringExtra(CaptureActivity.EXTRA_DOCUMENT_ID)
+                ?: return@registerForActivityResult
+            Toast.makeText(this, R.string.scan_saved, Toast.LENGTH_SHORT).show()
+            refreshLibrary()
+            openDocument(id)
+        }
+
+    private val finalizeLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val id = result.data?.getStringExtra(FinalizeActivity.EXTRA_DOCUMENT_ID)
+                ?: return@registerForActivityResult
             Toast.makeText(this, R.string.scan_saved, Toast.LENGTH_SHORT).show()
             refreshLibrary()
             openDocument(id)
@@ -116,7 +90,12 @@ class MainActivity : AppCompatActivity() {
         binding.listDocuments.adapter = adapter
 
         binding.buttonScanDocument.setOnClickListener { startScan(DocumentType.DOCUMENT) }
-        binding.buttonScanId.setOnClickListener { startScan(DocumentType.ID) }
+        binding.buttonScanId.setOnClickListener {
+            IdentityTypeChooser.show(this) { identity ->
+                pendingIdentityType = identity
+                startScan(DocumentType.ID)
+            }
+        }
     }
 
     override fun onResume() {
@@ -126,6 +105,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startScan(type: DocumentType) {
         pendingType = type
+        if (type == DocumentType.DOCUMENT) pendingIdentityType = null
         MlKitScanner.start(
             activity = this,
             type = type,
@@ -138,7 +118,46 @@ class MainActivity : AppCompatActivity() {
         captureLauncher.launch(
             Intent(this, CaptureActivity::class.java)
                 .putExtra(CaptureActivity.EXTRA_DOCUMENT_TYPE, type.name)
+                .putExtra(CaptureActivity.EXTRA_IDENTITY_TYPE, pendingIdentityType?.name)
         )
+    }
+
+    private fun openFinalizeFromUris(pageUris: List<android.net.Uri>, sideBySide: Boolean) {
+        try {
+            val dir = File(cacheDir, "mlkit_finalize_${System.currentTimeMillis()}").apply { mkdirs() }
+            val files = pageUris.mapIndexed { index, uri ->
+                File(dir, "side_$index.jpg").also { file ->
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        file.outputStream().use { output -> input.copyTo(output) }
+                    }
+                }
+            }
+            finalizeLauncher.launch(
+                Intent(this, FinalizeActivity::class.java)
+                    .putStringArrayListExtra(
+                        FinalizeActivity.EXTRA_IMAGE_PATHS,
+                        ArrayList(files.map { it.absolutePath }),
+                    )
+                    .putExtra(FinalizeActivity.EXTRA_DOCUMENT_TYPE, DocumentType.ID.name)
+                    .putExtra(FinalizeActivity.EXTRA_IDENTITY_TYPE, pendingIdentityType?.name)
+                    .putExtra(FinalizeActivity.EXTRA_SIDE_BY_SIDE, sideBySide)
+            )
+        } catch (e: Exception) {
+            Toast.makeText(this, e.message ?: getString(R.string.scan_failed), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun importMlKitPdf(scanResult: GmsDocumentScanningResult) {
+        val pdf = scanResult.pdf
+        if (pdf?.uri == null) {
+            Toast.makeText(this, R.string.scan_failed, Toast.LENGTH_LONG).show()
+            return
+        }
+        val pageCount = pdf.pageCount.takeIf { it > 0 } ?: scanResult.pages?.size ?: 1
+        val doc = repository.importPdf(pdf.uri, pendingType, pageCount, contentResolver)
+        Toast.makeText(this, R.string.scan_saved, Toast.LENGTH_SHORT).show()
+        refreshLibrary()
+        openDocument(doc.id)
     }
 
     private fun refreshLibrary() {

@@ -55,4 +55,19 @@ class DocumentRepositoryTest {
         assertFalse(repository.fileFor(doc).exists())
         assertTrue(repository.list().isEmpty())
     }
+
+    @Test
+    fun corruptIndexIsBackedUpInsteadOfLosingData() {
+        repository.importPdf(
+            ByteArrayInputStream("%PDF-1.4 fake".toByteArray()),
+            DocumentType.DOCUMENT,
+            1,
+        )
+        val documentsDir = File(app.filesDir, "documents")
+        File(documentsDir, "index.json").writeText("{not valid json")
+
+        assertTrue(repository.list().isEmpty())
+        val backups = documentsDir.listFiles { f -> f.name.startsWith("index_corrupt_") }
+        assertTrue(backups != null && backups.isNotEmpty())
+    }
 }

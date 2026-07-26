@@ -1,13 +1,16 @@
 # Scanner
 
-Android app to scan US driver’s licenses, state IDs, and documents into PDF.
+Android app to scan US driver’s licenses, state IDs, passports, and documents into PDF or JPEG.
 
 ## Features
 
-- Scan ID / driver’s license (front + back, life-size on US Letter)
-- Scan multi-page documents
-- Built-in camera + crop; optional ML Kit document scanner when available
-- Stacked or side-by-side ID layout chooser
+- ID type picker: driver’s license, state ID, passport, other card
+- Passport photo page + optional visa/endorsement page (TD3 life-size on US Letter)
+- Card front/back with stacked or side-by-side Letter layout
+- Built-in camera + crop (unchanged core); optional ML Kit document scanner
+- Review screen: preview, rename, export PDF or JPEG (quality)
+- Library rename + export JPEG from viewer
+- OCR text extraction
 
 ## Privacy / build notes
 
@@ -17,8 +20,6 @@ Android app to scan US driver’s licenses, state IDs, and documents into PDF.
 
 ## Build (Windows)
 
-Requires JDK 17 + Android SDK (or use a local `.tools` setup).
-
 ```powershell
 .\scripts\build-release.ps1
 .\scripts\install-phone.ps1
@@ -26,4 +27,4 @@ Requires JDK 17 + Android SDK (or use a local `.tools` setup).
 
 ## Flow
 
-Home → Scan ID / license or Scan document → Camera → Crop → Done → PDF
+Home → Scan ID/passport (pick type) or Scan document → Camera → Crop → (layout if card) → Review & save → Library
