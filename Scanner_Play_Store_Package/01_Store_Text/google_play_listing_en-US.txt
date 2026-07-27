@@ -1,0 +1,65 @@
+GOOGLE PLAY STORE LISTING — ENGLISH (UNITED STATES)
+Updated to reflect the app's current feature set (documents, ID/passport
+scanning, per-page filters, business card designer, OCR, re-editing saved
+scans) — see CHANGELOG note at the bottom.
+
+APP NAME
+Scanner: Docs, ID & Cards
+Character count: 25 / 30
+
+SHORT DESCRIPTION
+Scan IDs, passports & documents. Also design business cards. Export PDF/PNG.
+Character count: 76 / 80
+
+FULL DESCRIPTION
+Scanner makes it easy to scan US driver's licenses, state IDs, passports, and multi-page documents, then save them as clean PDF or JPEG files. You can also design a two-sided business card from scratch.
+
+SCAN IDS AND PASSPORTS
+Capture the front and back of a driver's license or state ID, or the photo page (and optional visa page) of a passport. Scanner places IDs life-size on one US Letter page, choose stacked or side-by-side placement. Passport pages print at real TD3 size.
+
+SCAN MULTI-PAGE DOCUMENTS
+Create one PDF from letters, forms, receipts, and other paper documents. Add multiple pages and keep recent scans organized in one library.
+
+PER-PAGE FILTERS
+Choose Color, Enhance, Grayscale, or Black & White for each page as you crop it.
+
+DESIGN A BUSINESS CARD
+Fill in your name, title, contact details, and services, pick a brand color pair, add a logo and a QR code, then export a print-ready two-sided card (US standard 3.5x2in) as PDF or PNG. Saved designs can be reopened and edited later.
+
+EXTRACT TEXT (OCR)
+Pull text out of any scanned page and copy it to the clipboard.
+
+EDIT SAVED SCANS
+Reopen an already-saved document or ID scan to re-crop or change the filter on individual pages, without starting over.
+
+KEY FEATURES
+- Driver's license, state ID, and passport scanning
+- Life-size ID/passport placement on one US Letter page
+- Stacked and side-by-side ID layouts
+- Multi-page document PDFs
+- Automatic document edge detection with manual crop and rotate
+- Color, Enhance, Grayscale, and Black & White filters
+- Business card designer with logo, QR code, and brand colors
+- PDF and JPEG/PNG export
+- On-device OCR text extraction
+- Re-edit already-saved scans
+- Rename, delete, and share files
+
+Scanner processes everything on your device. Camera access is used only to capture the documents you choose to scan.
+
+Scanner is not affiliated with any government agency, department of motor vehicles, or licensing authority.
+Character count: 1942 / 4000
+
+CATEGORY
+Productivity
+
+SUGGESTED TAGS
+Document scanner
+PDF
+Business card
+Productivity
+
+IMPORTANT
+Only describe features that are included in the production build you are
+uploading. If a feature listed above ships in a later release than the
+build you submit, remove that line until it's actually live.

@@ -1,0 +1,60 @@
+GOOGLE PLAY MAĞAZA METNİ — TÜRKÇE (TÜRKİYE)
+Uygulama arayüzü de Türkçeleştirildi (values-tr/strings.xml). Bu metin
+uygulamanın şu anki tüm özelliklerini yansıtır (belge, kimlik/pasaport
+tarama, sayfa bazlı filtreler, kartvizit tasarımcısı, OCR, kaydedilmiş
+taramaları yeniden düzenleme).
+
+UYGULAMA ADI
+Scanner: Kimlik, Belge, Kart
+Karakter sayısı: 28 / 30
+
+KISA AÇIKLAMA
+Kimlik, pasaport, belge tarayın; kartvizit tasarlayın. PDF/JPEG kaydedin.
+Karakter sayısı: 73 / 80
+
+TAM AÇIKLAMA
+Scanner ile ABD ehliyetlerini, eyalet kimliklerini, pasaportları ve çok sayfalı belgeleri kolayca tarayıp temiz PDF veya JPEG dosyaları olarak kaydedebilirsiniz. Ayrıca sıfırdan iki yüzlü bir kartvizit tasarlayabilirsiniz.
+
+KİMLİK VE PASAPORT TARAMA
+Ehliyet veya eyalet kimliğinin ön ve arka yüzünü, ya da pasaportun fotoğraf sayfasını (isteğe bağlı vize sayfasıyla birlikte) çekin. Scanner, kimlikleri tek bir ABD Letter sayfasında gerçek boyutunda yerleştirir; alt alta veya yan yana düzen seçebilirsiniz. Pasaport sayfaları gerçek TD3 boyutunda basılır.
+
+ÇOK SAYFALI BELGE TARAMA
+Mektup, form, fiş ve diğer kağıt belgelerden tek bir PDF oluşturun. Birden çok sayfa ekleyin, son taramalarınızı tek bir kütüphanede düzenli tutun.
+
+SAYFA BAZLI FİLTRELER
+Her sayfayı kırparken Renkli, İyileştir, Gri Tonlama veya Siyah & Beyaz filtrelerinden birini seçin.
+
+KARTVİZİT TASARLAYIN
+Ad, unvan, iletişim bilgileri ve hizmetlerinizi girin, bir marka renk çifti seçin, logo ve QR kod ekleyin, ardından baskıya hazır iki yüzlü bir kartı (standart ABD boyutu 3.5x2 inç) PDF veya PNG olarak dışa aktarın. Kaydedilen tasarımlar daha sonra tekrar açılıp düzenlenebilir.
+
+METİN ÇIKARMA (OCR)
+Taranan herhangi bir sayfadan metni çıkarıp panoya kopyalayın.
+
+KAYDEDİLEN TARAMALARI DÜZENLEYİN
+Daha önce kaydedilmiş bir belge veya kimlik taramasını yeniden açıp, baştan başlamadan tek tek sayfaları yeniden kırpabilir veya filtresini değiştirebilirsiniz.
+
+ÖNE ÇIKAN ÖZELLİKLER
+- Ehliyet, eyalet kimliği ve pasaport tarama
+- Kimlik/pasaportu tek bir ABD Letter sayfasında gerçek boyutunda yerleştirme
+- Alt alta veya yan yana kimlik düzeni
+- Çok sayfalı belge PDF'leri
+- Otomatik kenar algılama, elle kırpma ve döndürme
+- Renkli, İyileştir, Gri Tonlama ve Siyah & Beyaz filtreler
+- Logo, QR kod ve marka renkleriyle kartvizit tasarımı
+- PDF ve JPEG/PNG olarak dışa aktarma
+- Cihaz üzerinde OCR ile metin çıkarma
+- Kaydedilmiş taramaları yeniden düzenleme
+- Dosyaları yeniden adlandırma, silme ve paylaşma
+
+Scanner her şeyi cihazınızda işler. Kamera erişimi yalnızca taramak istediğiniz belgeleri çekmek için kullanılır.
+
+Scanner herhangi bir devlet kurumu, trafik/ehliyet dairesi veya lisans veren makamla bağlantılı değildir.
+Karakter sayısı: 2205 / 4000
+
+KATEGORİ
+Üretkenlik
+
+ÖNEMLİ
+Yalnızca yüklediğiniz üretim (production) sürümünde gerçekten bulunan
+özellikleri anlatın. Yukarıdaki bir özellik henüz yayınlanmadıysa, o
+satırı gerçekten yayına girene kadar kaldırın.

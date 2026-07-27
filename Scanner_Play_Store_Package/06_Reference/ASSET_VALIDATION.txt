@@ -1,0 +1,7 @@
+ASSET VALIDATION
+scanner_play_icon_512.png: 512x512, mode=RGBA, bytes=14702
+scanner_feature_graphic_1024x500.png: 1024x500, mode=RGB, bytes=36501
+01_scan_ids_and_documents_1080x1920.png: 1080x1920, mode=RGB, bytes=628622
+02_recent_scans_library_1080x1920.png: 1080x1920, mode=RGB, bytes=700374
+03_id_layout_letter_page_1080x1920.png: 1080x1920, mode=RGB, bytes=817084
+04_letter_size_pdf_1080x1920_OPTIONAL.png: 1080x1920, mode=RGB, bytes=471908

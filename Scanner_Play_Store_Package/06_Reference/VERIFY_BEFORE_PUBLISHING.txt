@@ -1,0 +1,23 @@
+REPLACE / VERIFY BEFORE PUBLISHING
+
+[ ] Replace [DEVELOPER OR COMPANY NAME] in index.html and privacy-policy.md.
+[ ] Replace [SUPPORT EMAIL ADDRESS].
+[ ] Replace [OPTIONAL WEBSITE URL] or remove that line.
+[ ] Confirm the effective date.
+[ ] Confirm whether the production build contains Firebase Analytics.
+[ ] Confirm whether the production build contains Crashlytics or another crash SDK.
+[ ] Confirm whether the production build contains AdMob or another advertising SDK.
+[ ] Confirm whether any scan, diagnostic information, or device data leaves the device.
+[ ] Update the privacy policy and Data safety form if any answer above is Yes.
+[ ] Replace all 4 placeholder screenshots with real captures from the
+    production app/device — the current ones are illustrative mockups,
+    not real screenshots (different UI than the actual app).
+[ ] Do NOT upload the current screenshot 04 — its onboarding screen does
+    not exist anywhere in the app.
+[ ] Confirm every screenshot matches the final production app.
+[ ] Confirm the Google Play title you choose matches your branding.
+[ ] If publishing the tr-TR listing, confirm the app build you upload
+    actually includes the Turkish translation (values-tr/strings.xml) —
+    don't show Turkish store copy for an English-only build.
+[ ] Re-check the EN/TR full descriptions against the build you're
+    uploading: remove any feature line not actually present in that build.

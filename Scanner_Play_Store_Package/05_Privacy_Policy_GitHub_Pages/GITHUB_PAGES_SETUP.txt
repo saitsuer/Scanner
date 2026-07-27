@@ -1,0 +1,43 @@
+GITHUB PAGES — PRIVACY POLICY URL SETUP
+
+1. Replace every placeholder in index.html:
+   [DEVELOPER OR COMPANY NAME]
+   [SUPPORT EMAIL ADDRESS]
+   [OPTIONAL WEBSITE URL]
+
+2. Confirm that the policy matches the production APK/AAB:
+   - Analytics SDK?
+   - Crash reporting?
+   - Advertising SDK?
+   - Cloud upload/storage?
+   - User account?
+   - Any data transmitted off the device?
+
+3. Create a public GitHub repository, for example:
+   scanner-privacy-policy
+
+4. Upload index.html to the repository root.
+
+5. Open:
+   Repository Settings > Pages
+
+6. Under “Build and deployment,” choose:
+   Deploy from a branch
+   Branch: main
+   Folder: / (root)
+
+7. Save. GitHub will provide a URL similar to:
+   https://YOUR-USERNAME.github.io/scanner-privacy-policy/
+
+8. Open the URL in an incognito/private browser window and verify that:
+   - It loads without signing in.
+   - It works on mobile.
+   - It is not a PDF.
+   - Developer name and support email are present.
+
+9. Add the same URL in:
+   - Play Console > App content / Privacy policy
+   - Scanner app > Settings or About > Privacy Policy
+
+10. Update the policy before publishing any version that adds ads,
+    analytics, crash reporting, accounts, or cloud processing.
