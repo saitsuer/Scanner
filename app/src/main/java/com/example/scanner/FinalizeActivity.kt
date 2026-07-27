@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.scanner.data.DocumentRepository
 import com.example.scanner.data.ExportHelper
-import com.example.scanner.data.PdfBuilder
+import com.example.scanner.data.ScanAssembly
 import com.example.scanner.databinding.ActivityFinalizeBinding
 import com.example.scanner.model.DocumentType
 import com.example.scanner.model.ExportFormat
@@ -27,6 +27,7 @@ class FinalizeActivity : AppCompatActivity() {
         const val EXTRA_IDENTITY_TYPE = "identity_type"
         const val EXTRA_SIDE_BY_SIDE = "side_by_side"
         const val EXTRA_DOCUMENT_ID = "document_id"
+        const val EXTRA_EXISTING_DOCUMENT_ID = "existing_document_id"
     }
 
     private lateinit var binding: ActivityFinalizeBinding
@@ -34,6 +35,7 @@ class FinalizeActivity : AppCompatActivity() {
     private lateinit var documentType: DocumentType
     private var identityType: IdentityType? = null
     private var sideBySide: Boolean = false
+    private var existingId: String? = null
     private lateinit var imageFiles: List<File>
     private lateinit var previewPdf: File
     private var previewBitmap: Bitmap? = null
@@ -52,6 +54,7 @@ class FinalizeActivity : AppCompatActivity() {
             runCatching { IdentityType.valueOf(it) }.getOrNull()
         }
         sideBySide = intent.getBooleanExtra(EXTRA_SIDE_BY_SIDE, false)
+        existingId = intent.getStringExtra(EXTRA_EXISTING_DOCUMENT_ID)
         imageFiles = intent.getStringArrayListExtra(EXTRA_IMAGE_PATHS)
             ?.map { File(it) }
             ?.filter { it.exists() }
@@ -64,8 +67,10 @@ class FinalizeActivity : AppCompatActivity() {
         }
 
         binding.toolbar.setNavigationOnClickListener { finish() }
+        val existingTitle = existingId?.let { repository.get(it)?.title }
         binding.inputTitle.setText(
-            identityType?.defaultTitleLabel()
+            existingTitle
+                ?: identityType?.defaultTitleLabel()
                 ?: if (documentType == DocumentType.ID) getString(R.string.type_id) else getString(R.string.type_document)
         )
 
@@ -87,16 +92,8 @@ class FinalizeActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildPdf(output: File): Int {
-        return when {
-            documentType == DocumentType.ID && identityType?.isPassport == true ->
-                PdfBuilder.passportOnLetter(imageFiles, output)
-            documentType == DocumentType.ID ->
-                PdfBuilder.idCardOnLetter(imageFiles, output, sideBySide = sideBySide)
-            else ->
-                PdfBuilder.fromImageFiles(imageFiles, output)
-        }
-    }
+    private fun buildPdf(output: File): Int =
+        ScanAssembly.buildPdf(documentType, identityType, sideBySide, imageFiles, output)
 
     private fun save() {
         binding.buttonSave.isEnabled = false
@@ -112,13 +109,15 @@ class FinalizeActivity : AppCompatActivity() {
                         pageCount = pageCount,
                         titleOverride = title,
                         identityType = identityType,
+                        existingId = existingId,
                     )
                 }
             } else {
                 val jpegDir = File(cacheDir, "jpeg_export_${System.currentTimeMillis()}").apply { mkdirs() }
                 val jpegs = ExportHelper.pdfToJpegs(previewPdf, jpegDir, quality)
-                repository.importJpegs(jpegs, documentType, title, identityType)
+                repository.importJpegs(jpegs, documentType, title, identityType, existingId = existingId)
             }
+            repository.saveScanSources(doc.id, imageFiles, sideBySide)
             setResult(RESULT_OK, Intent().putExtra(EXTRA_DOCUMENT_ID, doc.id))
             finish()
         } catch (e: Exception) {

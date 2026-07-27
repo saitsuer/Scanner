@@ -42,6 +42,45 @@ class DocumentRepository(context: Context) {
         return listOf(primary).filter { it.exists() }
     }
 
+    data class ScanSourceMeta(val pageCount: Int, val sideBySide: Boolean)
+
+    /**
+     * Persists the per-page images a document/ID scan was built from (before
+     * they get composed into a single PDF/JPEG), so the scan can be reopened
+     * later and individual pages re-cropped/re-filtered.
+     */
+    fun saveScanSources(id: String, imageFiles: List<File>, sideBySide: Boolean) {
+        var oldCount = 0
+        while (File(rootDir, "${id}_src_p$oldCount.jpg").exists()) oldCount++
+
+        imageFiles.forEachIndexed { index, file ->
+            file.copyTo(File(rootDir, "${id}_src_p$index.jpg"), overwrite = true)
+        }
+        for (i in imageFiles.size until oldCount) {
+            File(rootDir, "${id}_src_p$i.jpg").delete()
+        }
+        JSONObject()
+            .put("pageCount", imageFiles.size)
+            .put("sideBySide", sideBySide)
+            .let { File(rootDir, "${id}_src_meta.json").writeText(it.toString()) }
+    }
+
+    fun sourcePageFiles(doc: ScannedDocument): List<File> {
+        val meta = loadScanMeta(doc) ?: return emptyList()
+        return (0 until meta.pageCount).mapNotNull { i ->
+            File(rootDir, "${doc.id}_src_p$i.jpg").takeIf { it.exists() }
+        }
+    }
+
+    fun loadScanMeta(doc: ScannedDocument): ScanSourceMeta? {
+        val file = File(rootDir, "${doc.id}_src_meta.json")
+        if (!file.exists()) return null
+        return runCatching {
+            val o = JSONObject(file.readText())
+            ScanSourceMeta(pageCount = o.getInt("pageCount"), sideBySide = o.optBoolean("sideBySide", false))
+        }.getOrNull()
+    }
+
     fun importPdf(
         sourceUri: Uri,
         type: DocumentType,
@@ -49,10 +88,11 @@ class DocumentRepository(context: Context) {
         resolver: ContentResolver,
         titleOverride: String? = null,
         identityType: IdentityType? = null,
+        existingId: String? = null,
     ): ScannedDocument {
         resolver.openInputStream(sourceUri).use { input ->
             requireNotNull(input) { "Could not read PDF" }
-            return importPdf(input, type, pageCount, titleOverride, identityType)
+            return importPdf(input, type, pageCount, titleOverride, identityType, existingId)
         }
     }
 
@@ -62,8 +102,9 @@ class DocumentRepository(context: Context) {
         pageCount: Int,
         titleOverride: String? = null,
         identityType: IdentityType? = null,
+        existingId: String? = null,
     ): ScannedDocument {
-        val id = UUID.randomUUID().toString()
+        val id = existingId ?: UUID.randomUUID().toString()
         val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
         val label = identityType?.defaultTitleLabel()
             ?: if (type == DocumentType.ID) "ID" else "Document"
@@ -74,19 +115,22 @@ class DocumentRepository(context: Context) {
 
         FileOutputStream(target).use { output -> input.copyTo(output) }
 
+        val docs = readIndex().toMutableList()
+        val existingIndex = docs.indexOfFirst { it.id == id }
+        val previous = docs.getOrNull(existingIndex)
+
         val doc = ScannedDocument(
             id = id,
             title = title,
             type = type,
             fileName = fileName,
-            createdAt = System.currentTimeMillis(),
+            createdAt = previous?.createdAt ?: System.currentTimeMillis(),
             pageCount = pageCount.coerceAtLeast(1),
             identityType = identityType,
             exportFormat = ExportFormat.PDF,
         )
-        val updated = readIndex().toMutableList()
-        updated.add(0, doc)
-        writeIndex(updated)
+        replaceOrInsert(docs, previous, existingIndex, doc, fileName)
+        writeIndex(docs)
         return doc
     }
 
@@ -95,9 +139,10 @@ class DocumentRepository(context: Context) {
         type: DocumentType,
         titleOverride: String?,
         identityType: IdentityType?,
+        existingId: String? = null,
     ): ScannedDocument {
         require(jpegFiles.isNotEmpty()) { "At least one image is required" }
-        val id = UUID.randomUUID().toString()
+        val id = existingId ?: UUID.randomUUID().toString()
         val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
         val label = identityType?.defaultTitleLabel()
             ?: if (type == DocumentType.ID) "ID" else "Document"
@@ -107,20 +152,43 @@ class DocumentRepository(context: Context) {
             src.copyTo(dest, overwrite = true)
             dest
         }
+
+        val docs = readIndex().toMutableList()
+        val existingIndex = docs.indexOfFirst { it.id == id }
+        val previous = docs.getOrNull(existingIndex)
+
         val doc = ScannedDocument(
             id = id,
             title = title,
             type = type,
             fileName = stored.first().name,
-            createdAt = System.currentTimeMillis(),
+            createdAt = previous?.createdAt ?: System.currentTimeMillis(),
             pageCount = stored.size,
             identityType = identityType,
             exportFormat = ExportFormat.JPEG,
         )
-        val updated = readIndex().toMutableList()
-        updated.add(0, doc)
-        writeIndex(updated)
+        // Clean up stale per-page JPEGs beyond the new page count on re-save
+        if (previous != null) {
+            for (i in stored.size until previous.pageCount) File(rootDir, "${id}_p$i.jpg").delete()
+        }
+        replaceOrInsert(docs, previous, existingIndex, doc, stored.first().name)
+        writeIndex(docs)
         return doc
+    }
+
+    private fun replaceOrInsert(
+        docs: MutableList<ScannedDocument>,
+        previous: ScannedDocument?,
+        existingIndex: Int,
+        doc: ScannedDocument,
+        newFileName: String,
+    ) {
+        if (previous != null) {
+            if (previous.fileName != newFileName) File(rootDir, previous.fileName).delete()
+            docs[existingIndex] = doc
+        } else {
+            docs.add(0, doc)
+        }
     }
 
     fun saveBusinessCard(
@@ -252,6 +320,8 @@ class DocumentRepository(context: Context) {
             loadBusinessCard(target)?.logoFileName?.let { File(rootDir, it).delete() }
             File(rootDir, cardFileName).delete()
         }
+        sourcePageFiles(target).forEach { it.delete() }
+        File(rootDir, "${id}_src_meta.json").delete()
         docs.removeAll { it.id == id }
         writeIndex(docs)
         return true

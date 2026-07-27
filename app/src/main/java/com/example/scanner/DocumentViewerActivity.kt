@@ -23,6 +23,7 @@ import com.example.scanner.model.ExportFormat
 import com.example.scanner.model.JpegQuality
 import com.example.scanner.model.ScannedDocument
 import com.example.scanner.ui.BusinessCardEditorActivity
+import com.example.scanner.ui.EditScanActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -69,15 +70,19 @@ class DocumentViewerActivity : AppCompatActivity() {
         binding.toolbar.title = document.title
         binding.toolbar.setNavigationOnClickListener { finish() }
         binding.toolbar.inflateMenu(R.menu.menu_document_viewer)
-        binding.toolbar.menu.findItem(R.id.action_edit_card)?.isVisible =
-            document.type == DocumentType.BUSINESS_CARD
+        binding.toolbar.menu.findItem(R.id.action_edit)?.isVisible =
+            document.type == DocumentType.BUSINESS_CARD || repository.sourcePageFiles(document).isNotEmpty()
         binding.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.action_edit_card -> {
-                    editLauncher.launch(
+                R.id.action_edit -> {
+                    val editIntent = if (document.type == DocumentType.BUSINESS_CARD) {
                         Intent(this, BusinessCardEditorActivity::class.java)
                             .putExtra(BusinessCardEditorActivity.EXTRA_DOCUMENT_ID, document.id)
-                    )
+                    } else {
+                        Intent(this, EditScanActivity::class.java)
+                            .putExtra(EditScanActivity.EXTRA_DOCUMENT_ID, document.id)
+                    }
+                    editLauncher.launch(editIntent)
                     true
                 }
                 R.id.action_rename -> {

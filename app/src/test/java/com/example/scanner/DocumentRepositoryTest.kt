@@ -108,4 +108,35 @@ class DocumentRepositoryTest {
         assertFalse(repository.fileFor(doc).exists())
         assertTrue(repository.list().isEmpty())
     }
+
+    @Test
+    fun scanSourcesSurviveAndSupportReEditOverwrite() {
+        val page0 = File(app.cacheDir, "src_p0.jpg").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        val page1 = File(app.cacheDir, "src_p1.jpg").apply { writeBytes(byteArrayOf(4, 5, 6)) }
+
+        val doc = repository.importPdf(
+            ByteArrayInputStream("%PDF-1.4 fake".toByteArray()),
+            DocumentType.ID,
+            1,
+        )
+        repository.saveScanSources(doc.id, listOf(page0, page1), sideBySide = true)
+
+        val meta = repository.loadScanMeta(doc)
+        assertEquals(2, meta?.pageCount)
+        assertTrue(meta?.sideBySide == true)
+        assertEquals(2, repository.sourcePageFiles(doc).size)
+
+        // Re-edit: overwrite the same doc id with a single rebuilt page
+        val updated = repository.importPdf(
+            ByteArrayInputStream("%PDF-1.4 fake v2".toByteArray()),
+            DocumentType.ID,
+            1,
+            existingId = doc.id,
+        )
+        assertEquals(doc.id, updated.id)
+        assertEquals(1, repository.list().size)
+
+        assertTrue(repository.delete(doc.id))
+        assertTrue(repository.sourcePageFiles(doc).isEmpty())
+    }
 }

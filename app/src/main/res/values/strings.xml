@@ -118,5 +118,10 @@
     <string name="format_png">PNG</string>
     <string name="card_save">Save card</string>
     <string name="required_field">Required</string>
-    <string name="action_edit_card">Edit</string>
+    <string name="action_edit">Edit</string>
+    <string name="edit_scan_title">Edit pages</string>
+    <string name="edit_scan_helper">Tap a page to re-crop or change its filter.</string>
+    <string name="edit_scan_tap_hint">Tap to edit ›</string>
+    <string name="edit_scan_save">Save changes</string>
+    <string name="page_number">Page %1$d</string>
 </resources>
